@@ -1,0 +1,2 @@
+# Module com.kissaki.MessengerGWTWithHype.JUnit
+# RPC service class, partial path of RPC policy file

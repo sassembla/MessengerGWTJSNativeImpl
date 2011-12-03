@@ -1,0 +1,2 @@
+serviceClass: com.kissaki.client.GreetingService
+path: D6D68F6D9924EEFE71AA3D58F25299D3.gwt.rpc
