@@ -1,5 +1,8 @@
 package com.kissaki.client;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+
 import com.google.gwt.json.client.JSONNumber;
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONString;
@@ -10,107 +13,112 @@ import com.kissaki.client.MessengerGWTCore.MessengerGWTImplement;
 import com.kissaki.client.MessengerGWTCore.MessageCenter.MessageMasterHub;
 import com.kissaki.client.subFrame.debug.Debug;
 
-
-
 public class TestMessengerGWTWithJS extends GWTTestCase {
 	Debug debug;
-	
+
 	MessengerGWTWIthHype hype;
 	MessengerGWTImplement messenger;
 	MessageMasterHub currentAspectMaster;
-	
+
 	ReceiverClass rec;
-	
-	
-	int TIME_LIMIT = 10000;
+
+	int TIME_LIMIT = 1000;
 	int TIME_INTERVAL = 10;
-	
-	String TEST_MESSAGE_ID = "0";//固定値 
-	
+
+	String TEST_MESSAGE_ID = "0";// 固定値
+
 	String TEST_MYNAME = "TEST_MYNAME";
 	String TEST_COMMAND = "TEST_COMMAND";
 	String TEST_RECEIVER_ID = "TEST_RECEIVER_ID";
-	
+
 	String TEST_TAG = "TEST_TAG";
 	String TEST_VALUE = "TEST_VALUE";
 	String TEST_RECEIVER = "TEST_RECEIVER";
-	
-	
+
 	/**
 	 * コンストラクタ
 	 */
-	public TestMessengerGWTWithJS () {
+	public TestMessengerGWTWithJS() {
 		debug = new Debug(this);
 		debug.trace("constructed");
 	}
-	
-	
+
 	/**
 	 * Must refer to a valid module that sources this class.
 	 */
 	public String getModuleName() {
-		return "com.kissaki.MessengerGWTWithHype";//パッケージの中で、クライアント/サーバの前+プロジェクトプロジェクト名称(xmlでの読み出しが行われている箇所)
+		return "com.kissaki.MessengerGWTWithHype";// パッケージの中で、クライアント/サーバの前+プロジェクトプロジェクト名称(xmlでの読み出しが行われている箇所)
 	}
-	
+
 	/**
 	 * セットアップ
 	 */
-	public void gwtSetUp () {
-		debug.trace("setup_"+this);
+	public void gwtSetUp() {
+		debug.trace("setup_" + this);
 		hype = new MessengerGWTWIthHype();
-//		hype.onModuleLoad();
-		
+		// hype.onModuleLoad();
+
 		currentAspectMaster = MessageMasterHub.setUpMessengerAspectForTesting();
-		
+
 		rec = new ReceiverClass(TEST_RECEIVER);
-		
+
 		messenger = new MessengerGWTImplement(TEST_MYNAME, this);
 	}
-	
-	
+
 	/**
 	 * ティアダウン
 	 */
-	public void gwtTearDown () {
+	public void gwtTearDown() {
 		hype = null;
-		
+
 		currentAspectMaster.tearDownMessengerAspectForTesting();
-		
-		//レシーバ、必要であれば。
+
+		// レシーバ、必要であれば。
 		rec.receiver.removeFromCurrentMessageAspect();
 		rec.receiver = null;
 		rec = null;
-		
+
 		messenger.removeFromCurrentMessageAspect();
 		messenger = null;
 		debug.trace("teardown");
 	}
-	
-	
-	
-	
+
 	/**
-	 * JSNIで親への認定設定を送信するポスト機構のテスト
-	 * messageMapで制作できる内容を模倣していく。
+	 * JSNIで親への認定設定を送信するポスト機構のテスト messageMapで制作できる内容を模倣していく。
 	 * 
 	 * postMessageでメッセージを送る(最初は、inputParentの内容)
 	 */
 	public void testJSNIMessageInput() {
-		
-		//inputParentを模倣する。
-		String messageMap = getInputParentContainor("hype", TEST_RECEIVER);
-		String actual_messageMap = messenger.getMessageStructure(3, "", "hype", "hype", TEST_RECEIVER, "", "").toString();
-//		assertEquals(actual_messageMap, messageMap);
-		
-		boolean isSended = sendMessageAsPostMessage(messageMap, Window.Location.getHref());
-		debug.trace("isSended	"+isSended);
-		
+
+		// inputParentを模倣する。
+		String messageMap = getInputParentContainor("hype", messenger.getID(),
+				TEST_RECEIVER);
+
+		// オリジナル２　（詳細比較用）
+		// getMessageStructure(MS_CATEGOLY_PARENTSEARCH, messageID,
+		// getName(),getID(), inputName, "", "");
+		String actual_messageMap = messenger.getMessageStructure(3,
+				messenger.getID(), "hype", messenger.getID(), TEST_RECEIVER,
+				"", "").toString();
+		// assertEquals(actual_messageMap, messageMap);
+
+		// オリジナル(比較用)
+		JSONObject messageMap_org = messenger.getMessageStructure(3,
+				"01234567", messenger.getName(), messenger.getID(),
+				TEST_RECEIVER, "", "");
+		String messageMap_org_str = messageMap_org.toString();
+
+		// messenger.sendAsyncMessage(messageMap_org);
+		sendMessageAsPostMessage(messageMap, Window.Location.getHref());
+
+		// messenger.inputParent(TEST_RECEIVER);
+
 		delayTestFinish(TIME_LIMIT);
 		Timer timer = new Timer() {
-			
+
 			@Override
 			public void run() {
-				//定期的に到着の判断を行う。レシーバーへの返信で良いと思う。
+				// 定期的に到着の判断を行う。レシーバーへの返信で良いと思う。
 				if (rec.getMessengerForTesting().getReceiveLogSize() == 1) {
 					cancel();
 					finishTest();
@@ -119,126 +127,311 @@ public class TestMessengerGWTWithJS extends GWTTestCase {
 		};
 		timer.scheduleRepeating(TIME_INTERVAL);
 	}
+
+	/**
+	 * 親設定が終わったあと、連絡を貰う
+	 */
+	public void testReceiveInput() {
+		// inputParentを模倣する。
+		String messageMap = getInputParentContainor("hype", "01234567",
+				TEST_RECEIVER);
+		sendMessageAsPostMessage(messageMap, Window.Location.getHref());
+		setReceiver("hype", TEST_RECEIVER);
+		
+		
+		// messenger.inputParent(TEST_RECEIVER);
+		
+		delayTestFinish(TIME_LIMIT);
+		Timer timer = new Timer() {
+			int i = 0;
+
+			@Override
+			public void run() {
+				// 定期的に到着の判断を行う。レシーバーへの返信で良いと思う。
+				switch (i) {
+				case 0:
+					if (rec.getMessengerForTesting().getReceiveLogSize() == 1) {
+
+						// if (messenger.isReadyAsChild()) {//
+						// 本物の解析、無事に受け取れている場合の確認
+						// messenger.callParent("command",
+						// messenger.tagValue("key", "value"));
+						// }
+
+						if (isReceived("hype")) {
+							cancel();
+							finishTest();
+						}
+					}
+
+					break;
+				}
+
+			}
+
+		};
+		timer.scheduleRepeating(TIME_INTERVAL);
+	}
+
+	private native boolean isReceived(String propertyName) /*-{
+		if (!window[propertyName]) return false;
+		if (window[propertyName].slice(0,1) == "_")
+			return true;
+		return false;
+	}-*/;
+	
+	
+	/**
+	 * レシーバをセットする(特定の関数をセットし、値を保持する)
+	 * 
+	 * @param myself
+	 * @param parent
+	 */
+	private native void setReceiver(String myself, String parent) /*-{
+		
+		window[myself] = myself;//create property
+		window[myself+"_"+parent] = parent;
+		
+		var method = function(e) {
+			var rootObject = JSON.parse(e.data);
+			switch (rootObject.KEY_MESSAGE_CATEGOLY) {
+				case 0://MS_CATEGOLY_LOCAL
+				case 3://MS_CATEGOLY_PARENTSEARCH
+				case 4:
+					//何もしない
+					break;
+					
+				case 1://MS_CATEGOLY_CALLCHILD
+					alert("親からなんか来た");
+					//自分の親だったら、受け取って何かする
+					switch (rootObject.MESSENGER_messengerName) {
+						
+						case window[myself+"_"+parent]:
+						if (window[myself+"_parentId"] == rootObject.MESSENGER_messengerID) {
+							alert("何か届いた	"+rootObject.KEY_MESSENGER_EXEC);
+						}
+						break;
+					}
+					
+					break;
+				case 2://MS_CATEGOLY_CALLPARENT
+					//何もしない
+					break;
+					
+				case 5://MS_CATEGOLY_PARENTSEARCH_RET
+					switch (rootObject.MESSENGER_messengerName) {
+						case window[myself+"_"+parent]:
+						if (window[myself].slice(0, 1) != "_") {
+							window[myself] = "_" + window[myself]+"_"+e.data.MESSENGER_messengerID;
+							window[myself+"_parentId"] = rootObject.MESSENGER_messengerID;//parentIdをセット(今後通信で使用する)
+						}
+						break;
+					}
+					break;
+			}
+			
+			
+			
+		}
+
+		window.addEventListener('message', method, false);
+	}-*/;
+
 	
 	
 	/**
 	 * 親設定が終わったあとに、POSTする
 	 */
 	public void testJSNIMessagePost() {
-		
-		//inputParentを模倣する。
-		String messageMap = getInputParentContainor("hype", TEST_RECEIVER);
+		// inputParentを模倣する。
+		String messageMap = getInputParentContainor("hype", "01234567",
+				TEST_RECEIVER);
 		sendMessageAsPostMessage(messageMap, Window.Location.getHref());
-		
-		
-		
+		setReceiver("hype", TEST_RECEIVER);
+
+//		messenger.inputParent(TEST_RECEIVER);
+
 		delayTestFinish(TIME_LIMIT);
 		Timer timer = new Timer() {
 			int i = 0;
+
 			@Override
 			public void run() {
-				//定期的に到着の判断を行う。レシーバーへの返信で良いと思う。
+				// 定期的に到着の判断を行う。レシーバーへの返信で良いと思う。
 				switch (i) {
 				case 0:
-									
 					if (rec.getMessengerForTesting().getReceiveLogSize() == 1) {
-						String messageMap = getMessageStructureForPost("hype", TEST_RECEIVER);
-						//sendMessageAsPostMessage(messageMap, Window.Location.getHref());
 						
-						messenger.callParent("command", messenger.tagValue("key", "value"));
-						
-						i = 1;
+						if (messenger.isReadyAsChild()) {// 本物が、無事に受け取れている場合
+							messenger.callParent("command",
+									messenger.tagValue("key", "value"));
+							i = 1;
+						}
+
+						if (isReceived("hype")) {
+							i = 1;
+
+							// 宛先指定
+							String messageMap = getPostToParentContainor(
+									"hype", "01234567",
+									TEST_RECEIVER,
+									myParentId("hype"), "testExec");
+							
+//							String real_message = messenger.getMessageStructure(2, "01234567", "hype", "hype", TEST_RECEIVER, "parentId", "testExec").toString();
+//							assertEquals(real_message, messageMap);
+							sendMessageAsPostMessage(messageMap, Window.Location.getHref());
+							
+							
+						}
 					}
 
 					break;
+
 				case 1:
-					
 					if (rec.getMessengerForTesting().getReceiveLogSize() == 2) {
-						
+						debug.trace("finish!!");
 						cancel();
 						finishTest();
 					}
 					break;
 
-				
-
-			default:
-				break;
-			}
+				default:
+					break;
+				}
 
 			}
 		};
 		timer.scheduleRepeating(TIME_INTERVAL);
 	}
+
+	
+	/**
+	 * 親設定が終わったあとに、POST、親がそれに反応する
+	 */
+	public void testJSNIMessagePostAndReplied() {
+		// inputParentを模倣する。
+		String messageMap = getInputParentContainor("hype", "01234567",
+				TEST_RECEIVER);
+//		sendMessageAsPostMessage(messageMap, Window.Location.getHref());
+//		setReceiver("hype", TEST_RECEIVER);
+
+		messenger.inputParent(TEST_RECEIVER);
+
+		delayTestFinish(TIME_LIMIT);
+		Timer timer = new Timer() {
+			int i = 0;
+
+			@Override
+			public void run() {
+				// 定期的に到着の判断を行う。レシーバーへの返信で良いと思う。
+				switch (i) {
+				case 0:
+					if (rec.getMessengerForTesting().getReceiveLogSize() == 1) {
+						
+						if (messenger.isReadyAsChild()) {// 本物が、無事に受け取れている場合
+							messenger.callParent("testExec",
+									messenger.tagValue("key", "value"));
+							i = 1;
+						}
+
+						if (isReceived("hype")) {
+							i = 1;
+
+							// 宛先指定
+							String messageMap = getPostToParentContainor(
+									"hype", "01234567",
+									TEST_RECEIVER,
+									myParentId("hype"), "testExec");
+							
+//							String real_message = messenger.getMessageStructure(2, "01234567", "hype", "hype", TEST_RECEIVER, "parentId", "testExec").toString();
+//							assertEquals(real_message, messageMap);
+							sendMessageAsPostMessage(messageMap, Window.Location.getHref());
+							
+						}
+					}
+
+					break;
+
+				case 1:
+					if (rec.getMessengerForTesting().getReceiveLogSize() == 2) {
+						
+					}
+					
+					
+					break;
+
+				default:
+					break;
+				}
+
+			}
+		};
+		timer.scheduleRepeating(TIME_INTERVAL);
+	}
+
 	
 	
 	/**
-	 * 親設定が終わったあと、連絡を貰う
+	 * ネイティブで親のIDを返すメソッド
+	 * @param string
+	 * @return
 	 */
-	public void testReceiveInput() {
-		
-	}
-	
-	
-	
-	
+	protected native String myParentId(String string) /*-{
+		return window[string+"_"+"parentId"];
+	}-*/;
 
 	/**
 	 * JSONObjectを作り出す、ひな形比較用のメソッド
 	 * 
 	 * @param name
+	 * @param id8
 	 * @param receiver
 	 * @return
 	 */
-	private String getMessageStructure(String name, String receiver) {
-		//JSONを合成する。　あとでJSNI化する。
-		
+	private String getMessageStructure(String name, String id8, String receiver) {
+		// JSONを合成する。　あとでJSNI化する。
+
 		JSONObject rootJson = new JSONObject();
 		rootJson.put("MESSENGER_messengerName", new JSONString(name));
 		rootJson.put("MESSENGER_messengerID", new JSONString(name));
-		rootJson.put("MESSENGER_messageID", new JSONString(""));
+		rootJson.put("MESSENGER_messageID", new JSONString(id8));
 		rootJson.put("KEY_MESSAGE_CATEGOLY", new JSONNumber(3));
 		rootJson.put("MESSENGER_to", new JSONString(receiver));
 		rootJson.put("MESSENGER_toID", new JSONString(""));
 		rootJson.put("MESSENGER_exec", new JSONString(""));
 		rootJson.put("MESSENGER_pName", new JSONString(receiver));
 		rootJson.put("MESSENGER_tagValue", new JSONObject());
-		
-		
-//		String result = rootJson.toString();
-		String result = getInputParentContainor(name, receiver);
+
+		// String result = rootJson.toString();
+		String result = getInputParentContainor(name, "01234567", receiver);
 		return result;
 	}
 
-	
-	
-	
 	/**
 	 * 親申し込み用のJSNIコンテナ
+	 * 
 	 * @param name
 	 * @param receiver
 	 * @return
 	 */
-	public native String getInputParentContainor (String name, String receiver) /*-{
-		var result = {
-			"MESSENGER_messengerName":name,
-			"MESSENGER_messengerID":name,
-			"MESSENGER_messageID":"",
-			"KEY_MESSAGE_CATEGOLY":3,//inputParent
-			"MESSENGER_to":receiver,
-			"MESSENGER_toID":"",
-			"MESSENGER_exec":"",
-			"MESSENGER_pName":receiver,
-			"MESSENGER_tagValue":{}
-		};
-		
+	public native String getInputParentContainor(String name, String id8,
+			String receiver) /*-{
+				
+		var result = new Object();
+
+		result.MESSENGER_messengerName = name;
+		result.MESSENGER_messengerID = name;
+		result.MESSENGER_messageID = id8;
+		result.KEY_MESSAGE_CATEGOLY = 3;//inputParent
+		result.MESSENGER_to = receiver;
+		result.MESSENGER_toID = "";
+		result.MESSENGER_exec = "";
+		result.MESSENGER_pName = receiver;
+		result.MESSENGER_tagValue = new Object();
+			
 		return JSON.stringify(result);
 	}-*/;
-	
-	
-	
-	
-	
+
 	/**
 	 * JSONObjectを作り出す、ひな形比較用のメソッド
 	 * 
@@ -247,8 +440,8 @@ public class TestMessengerGWTWithJS extends GWTTestCase {
 	 * @return
 	 */
 	private String getMessageStructureForPost(String name, String receiver) {
-		//JSONを合成する。　あとでJSNI化する。
-		
+		// JSONを合成する。　あとでJSNI化する。
+
 		JSONObject rootJson = new JSONObject();
 		rootJson.put("MESSENGER_messengerName", new JSONString(name));
 		rootJson.put("MESSENGER_messengerID", new JSONString(name));
@@ -259,52 +452,56 @@ public class TestMessengerGWTWithJS extends GWTTestCase {
 		rootJson.put("MESSENGER_exec", new JSONString(""));
 		rootJson.put("MESSENGER_pName", new JSONString(receiver));
 		rootJson.put("MESSENGER_tagValue", new JSONObject());
-		
-		
-//		String result = rootJson.toString();
-		String result = getInputParentContainor(name, receiver);
+
+		// String result = rootJson.toString();
+		String result = getInputParentContainor(name, "01234567", receiver);
 		return result;
 	}
 
-	
-	
 	/**
 	 * 親へのPost用のJSNIコンテナ
+	 * 
 	 * @param name
-	 * @param receiver
+	 * @param id8
+	 * @param receiverName
+	 * @param receiverId
+	 * @param exec
 	 * @return
 	 */
-	public native String getPostToParentContainor (String name, String receiver) /*-{
-		var result = {
-			"MESSENGER_messengerName":name,
-			"MESSENGER_messengerID":name,
-			"MESSENGER_messageID":"",
-			"KEY_MESSAGE_CATEGOLY":2,//callParent
-			"MESSENGER_to":receiver,
-			"MESSENGER_toID":"",
-			"MESSENGER_exec":"",
-			"MESSENGER_pName":receiver,
-			"MESSENGER_tagValue":{}
-		};
+	public native String getPostToParentContainor(String name, String id8,
+			String receiverName, String receiverId, String exec) /*-{
 		
+		//もう、直書き。
+		var kv = new Object();
+		kv.key0 = "val0";
+		kv.key1 = "val1";
+		
+		
+		var result = new Object();
+		result.MESSENGER_messengerName = name;
+		result.MESSENGER_messengerID = name;
+		result.MESSENGER_messageID = id8;
+		result.KEY_MESSAGE_CATEGOLY = 2;//callParent
+		result.MESSENGER_to = receiverName;
+		result.MESSENGER_toID = receiverId;
+		result.MESSENGER_exec = exec;
+		result.MESSENGER_pName = "";
+		result.MESSENGER_tagValue = kv;
+
+//		alert("result_str	" + JSON.stringify(result));
+
 		return JSON.stringify(result);
 	}-*/;
-	
-	
-	
 
 	/**
 	 * PureJSでJSON化されたDataをPostする
+	 * 
 	 * @param message
 	 * @return
 	 */
-	public native boolean sendMessageAsPostMessage (String message, String href) /*-{
-		//http://192.168.1.100:54501/com.kissaki.MessengerGWTWithHype.JUnit/hosted.html?com_kissaki_MessengerGWTWithHype_JUnit
-		//http://127.0.0.1:54680/com.kissaki.MessengerGWTWithHype.JUnit/junit.html?gwt.codesvr=127.0.0.1:54679
-//		var href = $wnd.location.href;//window.location;
-		$wnd.postMessage(message, href);
-		return true;
-	}-*/;
-	
+	public native boolean sendMessageAsPostMessage(String message, String href) /*-{
+																				window.postMessage(message, href);
+																				return true;
+																				}-*/;
 
 }

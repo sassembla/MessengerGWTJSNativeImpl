@@ -411,7 +411,7 @@ public class MessengerGWTImplement extends MessageReceivedHandler implements Mes
 	 * 非同期メッセージ送信メソッド
 	 * @param message
 	 */
-	private void sendAsyncMessage(JSONObject message) {
+	public void sendAsyncMessage(JSONObject message) {
 		
 		String href = Window.Location.getHref();
 		postMessage(message.toString(), href);
@@ -1168,6 +1168,18 @@ public class MessengerGWTImplement extends MessageReceivedHandler implements Mes
 	 */
 	public MessageMasterHub masterHub() {
 		return MessageMasterHub.getMaster();
+	}
+
+
+	/**
+	 * 親設定が完了したかどうか
+	 * @return
+	 */
+	public boolean isReadyAsChild() {
+		if (parentID.equals("")) return false;
+		if (parentName.equals("")) return false;
+		
+		return true;
 	}
 
 

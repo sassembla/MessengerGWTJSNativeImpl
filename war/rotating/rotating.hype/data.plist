@@ -296,10 +296,23 @@
 				<string>kTimelineDefaultIdentifier</string>
 				<key>elements</key>
 				<dict/>
+				<key>onSceneAnimationCompleteAction</key>
+				<dict>
+					<key>sceneSymbol</key>
+					<integer>1</integer>
+					<key>transition</key>
+					<integer>1</integer>
+					<key>type</key>
+					<integer>1</integer>
+				</dict>
 				<key>onSceneKeyDownAction</key>
 				<dict>
+					<key>sceneSymbol</key>
+					<integer>1</integer>
+					<key>transition</key>
+					<integer>1</integer>
 					<key>type</key>
-					<integer>0</integer>
+					<integer>1</integer>
 				</dict>
 				<key>properties</key>
 				<dict>
@@ -699,9 +712,9 @@
 					<array>
 						<dict>
 							<key>identifier</key>
-							<string>OriginalWidth</string>
+							<string>TagName</string>
 							<key>objectValue</key>
-							<string>300px</string>
+							<string>div</string>
 						</dict>
 						<dict>
 							<key>identifier</key>
@@ -819,9 +832,9 @@
 						</dict>
 						<dict>
 							<key>identifier</key>
-							<string>TagName</string>
+							<string>OriginalWidth</string>
 							<key>objectValue</key>
-							<string>div</string>
+							<string>300px</string>
 						</dict>
 					</array>
 					<key>BBCFFDAE-0720-49E7-B4C2-672CCF8CD9D6-20596-00008E0395E40A4B</key>
@@ -1561,7 +1574,7 @@
 				<key>timeCursors</key>
 				<dict>
 					<key>kTimelineDefaultIdentifier</key>
-					<real>0.53333336114883423</real>
+					<real>0.0</real>
 				</dict>
 				<key>timescale</key>
 				<integer>60</integer>
@@ -2351,7 +2364,9 @@
 			<key>scrollViewOffset</key>
 			<string>{0, 0}</string>
 			<key>selectedObjects</key>
-			<array/>
+			<array>
+				<string>09CEDEE0-8328-40A1-BBB8-C235C273C4FF-20596-00008E5BC00EFFF1</string>
+			</array>
 			<key>splitHeight</key>
 			<real>443</real>
 		</dict>
