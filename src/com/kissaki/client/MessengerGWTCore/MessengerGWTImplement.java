@@ -207,9 +207,8 @@ public class MessengerGWTImplement extends MessageReceivedHandler implements Mes
 	 * @param rootMessage
 	 */
 	public void onMessagereceivedFromPostMessageAPI (String rootMessage) {
-		debug.trace("メッセージ受け取った	"+rootMessage);
 		JSONObject rootObject = null;
-		
+//		Window.alert("受け取った	"+getName());
 		try {
 			rootObject = JSONParser.parseStrict(rootMessage).isObject();
 		} catch (Exception e) {
@@ -287,6 +286,7 @@ public class MessengerGWTImplement extends MessageReceivedHandler implements Mes
 			debug.assertTrue(rootObject.get(KEY_TO_ID).isString() != null, "no KEY_TO_ID");
 			toID = rootObject.get(KEY_TO_ID).isString().stringValue();
 		}
+//		Window.alert("カテゴリチェックまで	メッセージングを受け取りました");
 		
 		switch (categoly) {	
 		case MS_CATEGOLY_LOCAL:
@@ -308,9 +308,10 @@ public class MessengerGWTImplement extends MessageReceivedHandler implements Mes
 		case MS_CATEGOLY_CALLPARENT:
 			//宛先MIDが自分のIDと一致するか
 			if (toID.equals(getID())) {
-				
+//				Window.alert("親として呼ばれた	メッセージングを受け取りました	");
 				addReceiveLog(rootObject);
 				receiveCenter(rootMessage);
+//				Window.alert("親として呼ばれた2	メッセージングを受け取りました");
 			}			
 
 			
@@ -328,6 +329,7 @@ public class MessengerGWTImplement extends MessageReceivedHandler implements Mes
 				childInfo.put(CHILDLIST_KEY_CHILD_NAME, new JSONString(fromName));
 				
 				childList.add(childInfo);
+//				Window.alert("子供っす	"+childList+"	で、名前が	"+childInfo);
 				JSONObject messageMap = getMessageStructure(MS_CATEGOLY_PARENTSEARCH_RET, UUID.uuid(8,16), getName(), getID(), fromName, fromID, TRIGGER_PARENTCONNECTED);
 				sendAsyncMessage(messageMap);
 				addReceiveLog(rootObject);
@@ -388,6 +390,7 @@ public class MessengerGWTImplement extends MessageReceivedHandler implements Mes
 	 * 内部から外部への行使
 	 */
 	public void receiveCenter(String rootMessage) {
+//		Window.alert("getInvokeObject()	"+getInvokeObject());
 		((MessengerGWTInterface) getInvokeObject()).receiveCenter(rootMessage);
 	}
 
@@ -429,11 +432,14 @@ public class MessengerGWTImplement extends MessageReceivedHandler implements Mes
 	 * @param tagValue
 	 */
 	public void call(String toName, String command, JSONObject ... tagValue) {
+//		Window.alert("送る前までは来てる	"+childList);
 		for (JSONObject currentChild : childList) {
+//			Window.alert("currentChild	"+currentChild);
 			if (currentChild.get(CHILDLIST_KEY_CHILD_NAME).isString().stringValue().equals(toName)) {
 				String toID = currentChild.get(CHILDLIST_KEY_CHILD_ID).isString().stringValue();
 				JSONObject messageMap = getMessageStructure(MS_CATEGOLY_CALLCHILD, UUID.uuid(8,16), getName(), getID(), toName, toID, command, tagValue);
 				sendAsyncMessage(messageMap);
+//				Window.alert("送った");
 			}
 		}
 	}
@@ -463,6 +469,7 @@ public class MessengerGWTImplement extends MessageReceivedHandler implements Mes
 		
 		String messageID = UUID.uuid(8,16);
 		JSONObject messageMap = getMessageStructure(MS_CATEGOLY_CALLPARENT, messageID, getName(), getID(), getParentName(), getParentID(), command, tagValue);
+		debug.trace("true	messageMap	"+messageMap.toString());
 		sendAsyncMessage(messageMap);
 		return messageID;
 	}

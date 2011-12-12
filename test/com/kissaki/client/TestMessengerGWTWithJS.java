@@ -10,10 +10,11 @@ import com.google.gwt.junit.client.GWTTestCase;
 import com.google.gwt.user.client.Timer;
 import com.google.gwt.user.client.Window;
 import com.kissaki.client.MessengerGWTCore.MessengerGWTImplement;
+import com.kissaki.client.MessengerGWTCore.MessengerGWTInterface;
 import com.kissaki.client.MessengerGWTCore.MessageCenter.MessageMasterHub;
 import com.kissaki.client.subFrame.debug.Debug;
 
-public class TestMessengerGWTWithJS extends GWTTestCase {
+public class TestMessengerGWTWithJS extends GWTTestCase implements MessengerGWTInterface {
 	Debug debug;
 
 	MessengerGWTWIthHype hype;
@@ -27,7 +28,7 @@ public class TestMessengerGWTWithJS extends GWTTestCase {
 
 	String TEST_MESSAGE_ID = "0";// 固定値
 
-	String TEST_MYNAME = "TEST_MYNAME";
+	String TEST_MYNAME = "hype";
 	String TEST_COMMAND = "TEST_COMMAND";
 	String TEST_RECEIVER_ID = "TEST_RECEIVER_ID";
 
@@ -91,14 +92,14 @@ public class TestMessengerGWTWithJS extends GWTTestCase {
 	public void testJSNIMessageInput() {
 
 		// inputParentを模倣する。
-		String messageMap = getInputParentContainor("hype", messenger.getID(),
+		String messageMap = getInputParentContainor(TEST_MYNAME, messenger.getID(),
 				TEST_RECEIVER);
 
 		// オリジナル２　（詳細比較用）
 		// getMessageStructure(MS_CATEGOLY_PARENTSEARCH, messageID,
 		// getName(),getID(), inputName, "", "");
 		String actual_messageMap = messenger.getMessageStructure(3,
-				messenger.getID(), "hype", messenger.getID(), TEST_RECEIVER,
+				messenger.getID(), TEST_MYNAME, messenger.getID(), TEST_RECEIVER,
 				"", "").toString();
 		// assertEquals(actual_messageMap, messageMap);
 
@@ -133,10 +134,10 @@ public class TestMessengerGWTWithJS extends GWTTestCase {
 	 */
 	public void testReceiveInput() {
 		// inputParentを模倣する。
-		String messageMap = getInputParentContainor("hype", "01234567",
+		String messageMap = getInputParentContainor(TEST_MYNAME, "01234567",
 				TEST_RECEIVER);
 		sendMessageAsPostMessage(messageMap, Window.Location.getHref());
-		setReceiver("hype", TEST_RECEIVER);
+		setReceiver(TEST_MYNAME, TEST_RECEIVER);
 		
 		
 		// messenger.inputParent(TEST_RECEIVER);
@@ -158,7 +159,7 @@ public class TestMessengerGWTWithJS extends GWTTestCase {
 						// messenger.tagValue("key", "value"));
 						// }
 
-						if (isReceived("hype")) {
+						if (isReceived(TEST_MYNAME)) {
 							cancel();
 							finishTest();
 						}
@@ -173,6 +174,12 @@ public class TestMessengerGWTWithJS extends GWTTestCase {
 		timer.scheduleRepeating(TIME_INTERVAL);
 	}
 
+	
+	/**
+	 * 親子系の形成が完了していれば
+	 * @param propertyName
+	 * @return
+	 */
 	private native boolean isReceived(String propertyName) /*-{
 		if (!window[propertyName]) return false;
 		if (window[propertyName].slice(0,1) == "_")
@@ -180,6 +187,16 @@ public class TestMessengerGWTWithJS extends GWTTestCase {
 		return false;
 	}-*/;
 	
+	/**
+	 * 親からのメッセージを受け取っていたら、受け取ったメッセージを返す
+	 * @param propertyName
+	 * @return
+	 */
+	private native String isReceivedMessageFromParent (String propertyName) /*-{
+		//さて、何を持って返答が来たと見なすか
+		
+		return null;
+	}-*/;
 	
 	/**
 	 * レシーバをセットする(特定の関数をセットし、値を保持する)
@@ -192,12 +209,15 @@ public class TestMessengerGWTWithJS extends GWTTestCase {
 		window[myself] = myself;//create property
 		window[myself+"_"+parent] = parent;
 		
+		//レシーバ
 		var method = function(e) {
 			var rootObject = JSON.parse(e.data);
+			
 			switch (rootObject.KEY_MESSAGE_CATEGOLY) {
 				case 0://MS_CATEGOLY_LOCAL
 				case 3://MS_CATEGOLY_PARENTSEARCH
 				case 4:
+					alert("何か来た");
 					//何もしない
 					break;
 					
@@ -219,14 +239,19 @@ public class TestMessengerGWTWithJS extends GWTTestCase {
 					break;
 					
 				case 5://MS_CATEGOLY_PARENTSEARCH_RET
+					
 					switch (rootObject.MESSENGER_messengerName) {
 						case window[myself+"_"+parent]:
 						if (window[myself].slice(0, 1) != "_") {
+							alert("親から認定");
 							window[myself] = "_" + window[myself]+"_"+e.data.MESSENGER_messengerID;
 							window[myself+"_parentId"] = rootObject.MESSENGER_messengerID;//parentIdをセット(今後通信で使用する)
 						}
 						break;
 					}
+					break;
+				default:
+					alert("何か来ました	"+rootObject.KEY_MESSAGE_CATEGOLY);
 					break;
 			}
 			
@@ -244,10 +269,10 @@ public class TestMessengerGWTWithJS extends GWTTestCase {
 	 */
 	public void testJSNIMessagePost() {
 		// inputParentを模倣する。
-		String messageMap = getInputParentContainor("hype", "01234567",
+		String messageMap = getInputParentContainor(TEST_MYNAME, "01234567",
 				TEST_RECEIVER);
 		sendMessageAsPostMessage(messageMap, Window.Location.getHref());
-		setReceiver("hype", TEST_RECEIVER);
+		setReceiver(TEST_MYNAME, TEST_RECEIVER);
 
 //		messenger.inputParent(TEST_RECEIVER);
 
@@ -268,16 +293,16 @@ public class TestMessengerGWTWithJS extends GWTTestCase {
 							i = 1;
 						}
 
-						if (isReceived("hype")) {
+						if (isReceived(TEST_MYNAME)) {
 							i = 1;
 
 							// 宛先指定
 							String messageMap = getPostToParentContainor(
-									"hype", "01234567",
+									TEST_MYNAME, "01234567",
 									TEST_RECEIVER,
-									myParentId("hype"), "testExec");
+									myParentId(TEST_MYNAME), "testExec");
 							
-//							String real_message = messenger.getMessageStructure(2, "01234567", "hype", "hype", TEST_RECEIVER, "parentId", "testExec").toString();
+//							String real_message = messenger.getMessageStructure(2, "01234567", TEST_MYNAME, TEST_MYNAME, TEST_RECEIVER, "parentId", "testExec").toString();
 //							assertEquals(real_message, messageMap);
 							sendMessageAsPostMessage(messageMap, Window.Location.getHref());
 							
@@ -310,13 +335,15 @@ public class TestMessengerGWTWithJS extends GWTTestCase {
 	 */
 	public void testJSNIMessagePostAndReplied() {
 		// inputParentを模倣する。
-		String messageMap = getInputParentContainor("hype", "01234567",
+		String messageMap = getInputParentContainor(TEST_MYNAME, "01234567",
 				TEST_RECEIVER);
-//		sendMessageAsPostMessage(messageMap, Window.Location.getHref());
-//		setReceiver("hype", TEST_RECEIVER);
-
-		messenger.inputParent(TEST_RECEIVER);
-
+		if (false) {
+		sendMessageAsPostMessage(messageMap, Window.Location.getHref());
+		setReceiver(TEST_MYNAME, TEST_RECEIVER);
+		} else {
+			messenger.inputParent(TEST_RECEIVER);
+		}
+		
 		delayTestFinish(TIME_LIMIT);
 		Timer timer = new Timer() {
 			int i = 0;
@@ -327,23 +354,27 @@ public class TestMessengerGWTWithJS extends GWTTestCase {
 				switch (i) {
 				case 0:
 					if (rec.getMessengerForTesting().getReceiveLogSize() == 1) {
-						
+						/*
+						 * 本物として送り込んで、リアクションを見てみる
+						 */
 						if (messenger.isReadyAsChild()) {// 本物が、無事に受け取れている場合
+							Window.alert("通常のmessengerでの送り込みを行う");
 							messenger.callParent("testExec",
 									messenger.tagValue("key", "value"));
 							i = 1;
 						}
 
-						if (isReceived("hype")) {
+						//受け取ったらPost
+						if (isReceived(TEST_MYNAME)) {
 							i = 1;
 
 							// 宛先指定
 							String messageMap = getPostToParentContainor(
-									"hype", "01234567",
+									TEST_MYNAME, "01234567",
 									TEST_RECEIVER,
-									myParentId("hype"), "testExec");
-							
-//							String real_message = messenger.getMessageStructure(2, "01234567", "hype", "hype", TEST_RECEIVER, "parentId", "testExec").toString();
+									myParentId(TEST_MYNAME), "testExec");//2通目
+							Window.alert("immitate	messageMap	"+messageMap);
+//							String real_message = messenger.getMessageStructure(2, "01234567", TEST_MYNAME, TEST_MYNAME, TEST_RECEIVER, "parentId", "testExec").toString();
 //							assertEquals(real_message, messageMap);
 							sendMessageAsPostMessage(messageMap, Window.Location.getHref());
 							
@@ -353,17 +384,82 @@ public class TestMessengerGWTWithJS extends GWTTestCase {
 					break;
 
 				case 1:
+					/*
+					 * 現象としては、受け取っているのに発動しない、というケースか。
+					 * たぶんコマンドが悪いんだと思う。どう違うのか。
+					 * 
+					 * 違うポイントは、
+					 * ・受け取ったのにReceiveCenterが発動しない
+					 * なので、仮に、普通に送り込んだ場合のものとメッセージを見比べる処理が必要。
+					 * →編集してたのは別プロジェクトのメッセンジャーだった。、、、、orz
+					 */
 					if (rec.getMessengerForTesting().getReceiveLogSize() == 2) {
+						Window.alert("レシーバが受け取ったので、返答をする	はず。"+100);
 						
+						//返答が発生しない場合
+//						rec.getMessengerForTesting().call(TEST_MYNAME, "somethingReply");
+						i = 2;
 					}
-					
-					
 					break;
 
+
+				case 2://この分解能の書き方はハマる。
+//					//自分がこれを受け取れたらOK
+//					if (isReceivedMessageFromParent(TEST_MYNAME) != null) {
+//						cancel();
+//						finishTest();
+//					}
 				default:
 					break;
 				}
 
+			}
+		};
+		timer.scheduleRepeating(TIME_INTERVAL);
+	}
+	
+	/**
+	 * ちょっと問題を整理する為に、
+	 * messengerが子、receiverが親になり、
+	 * 
+	 * messengerが申し込む
+	 * →receiverが親になる
+	 * →messengerからreceiverにメッセージを送る
+	 * →receiverが答える
+	 * →messengerに届く
+	 * 
+	 * というシナリオをやってみる。
+	 */
+	public void testPrimitiveMessaging() {
+		messenger.inputParent(TEST_RECEIVER);
+		
+		delayTestFinish(TIME_LIMIT);
+		Timer timer = new Timer() {
+			int step = 0;
+				
+			@Override
+			public void run() {
+				switch (step) {
+				case 0:
+					if (messenger.getReceiveLogSize() == 1) {//messengerが認められた
+						
+						messenger.callParent("testExec");
+						//debug.trace("step0 ended");
+						step = 1;
+					}
+					break;
+					
+				case 1:
+					if (messenger.getReceiveLogSize() == 2) {//messengerにメッセージが届いた
+						step = 2;
+						cancel();
+						finishTest();
+					}
+					break;
+					
+				default:
+					break;
+				}
 			}
 		};
 		timer.scheduleRepeating(TIME_INTERVAL);
@@ -503,5 +599,10 @@ public class TestMessengerGWTWithJS extends GWTTestCase {
 																				window.postMessage(message, href);
 																				return true;
 																				}-*/;
+
+	@Override
+	public void receiveCenter(String message) {
+		debug.trace("メッセージを受けとった	"+messenger.getReceiveLogSize());
+	}
 
 }
