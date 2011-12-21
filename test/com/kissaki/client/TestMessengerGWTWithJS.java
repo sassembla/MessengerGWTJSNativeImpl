@@ -47,7 +47,7 @@ public class TestMessengerGWTWithJS extends GWTTestCase implements MessengerGWTI
 	public String getModuleName() {
 		return "com.kissaki.MessengerGWTWithHype";// パッケージの中で、クライアント/サーバの前+プロジェクトプロジェクト名称(xmlでの読み出しが行われている箇所)
 	}
-
+	
 	/**
 	 * セットアップ
 	 */
@@ -156,7 +156,7 @@ public class TestMessengerGWTWithJS extends GWTTestCase implements MessengerGWTI
 						// messenger.tagValue("key", "value"));
 						// }
 
-						if (isReceived(TEST_MYNAME)) {
+						if (parentResponseReceived(TEST_MYNAME)) {
 							cancel();
 							finishTest();
 						}
@@ -171,29 +171,6 @@ public class TestMessengerGWTWithJS extends GWTTestCase implements MessengerGWTI
 		timer.scheduleRepeating(TIME_INTERVAL);
 	}
 
-	
-	/**
-	 * 親子系の形成が完了していれば
-	 * @param propertyName
-	 * @return
-	 */
-	private native boolean isReceived(String propertyName) /*-{
-		if (!window[propertyName]) return false;
-		if (window[propertyName].slice(0,1) == "_")
-			return true;
-		return false;
-	}-*/;
-	
-	/**
-	 * 親からのメッセージを受け取っていたら、受け取ったメッセージを返す
-	 * @param propertyName
-	 * @return
-	 */
-	private native String isReceivedMessageFromParent (String propertyName) /*-{
-		//さて、何を持って返答が来たと見なすか
-		
-		return null;
-	}-*/;
 	
 	/**
 	 * レシーバをセットする(特定の関数をセットし、値を保持する)
@@ -214,18 +191,17 @@ public class TestMessengerGWTWithJS extends GWTTestCase implements MessengerGWTI
 				case 0://MS_CATEGOLY_LOCAL
 				case 3://MS_CATEGOLY_PARENTSEARCH
 				case 4:
-					alert("何か来た");
 					//何もしない
 					break;
 					
 				case 1://MS_CATEGOLY_CALLCHILD
-					alert("親からなんか来た");
 					//自分の親だったら、受け取って何かする
 					switch (rootObject.MESSENGER_messengerName) {
 						
 						case window[myself+"_"+parent]:
 						if (window[myself+"_parentId"] == rootObject.MESSENGER_messengerID) {
-							alert("何か届いた	"+rootObject.KEY_MESSENGER_EXEC);
+							window[myself+"_count"]++;
+							alert("何か届いた	"+rootObject.KEY_MESSENGER_EXEC	+window[myself+"_count"]);
 						}
 						break;
 					}
@@ -240,15 +216,15 @@ public class TestMessengerGWTWithJS extends GWTTestCase implements MessengerGWTI
 					switch (rootObject.MESSENGER_messengerName) {
 						case window[myself+"_"+parent]:
 						if (window[myself].slice(0, 1) != "_") {
-							alert("親から認定");
 							window[myself] = "_" + window[myself]+"_"+e.data.MESSENGER_messengerID;
 							window[myself+"_parentId"] = rootObject.MESSENGER_messengerID;//parentIdをセット(今後通信で使用する)
+							window[myself+"_count"] = 0;
 						}
 						break;
 					}
 					break;
 				default:
-					alert("何か来ました	"+rootObject.KEY_MESSAGE_CATEGOLY);
+					alert("無縁っぽい何かが来ました	"+rootObject.KEY_MESSAGE_CATEGOLY);
 					break;
 			}
 			
@@ -290,7 +266,7 @@ public class TestMessengerGWTWithJS extends GWTTestCase implements MessengerGWTI
 							i = 1;
 						}
 
-						if (isReceived(TEST_MYNAME)) {
+						if (parentResponseReceived(TEST_MYNAME)) {
 							i = 1;
 
 							// 宛先指定
@@ -328,13 +304,14 @@ public class TestMessengerGWTWithJS extends GWTTestCase implements MessengerGWTI
 
 	
 	/**
-	 * 親設定が終わったあとに、POST、親がそれに反応する
+	 * 受信
+	 * 親設定が終わったあとに、POST、親がそれに反応、反応を受け取る
 	 */
 	public void testJSNIMessagePostAndReplied() {
 		// inputParentを模倣する。
 		String messageMap = getInputParentContainor(TEST_MYNAME, "01234567",
 				TEST_RECEIVER);
-		if (false) {
+		if (true) {
 		sendMessageAsPostMessage(messageMap, Window.Location.getHref());
 		setReceiver(TEST_MYNAME, TEST_RECEIVER);
 		} else {
@@ -347,6 +324,7 @@ public class TestMessengerGWTWithJS extends GWTTestCase implements MessengerGWTI
 
 			@Override
 			public void run() {
+				
 				// 定期的に到着の判断を行う。レシーバーへの返信で良いと思う。
 				switch (i) {
 				case 0:
@@ -362,50 +340,44 @@ public class TestMessengerGWTWithJS extends GWTTestCase implements MessengerGWTI
 						}
 
 						//受け取ったらPost
-						if (isReceived(TEST_MYNAME)) {
+						if (parentResponseReceived(TEST_MYNAME)) {
 							i = 1;
-
+							
 							// 宛先指定
 							String messageMap = getPostToParentContainor(
 									TEST_MYNAME, "01234567",
 									TEST_RECEIVER,
 									myParentId(TEST_MYNAME), "testExec");//2通目
+							
 							Window.alert("immitate	messageMap	"+messageMap);
 //							String real_message = messenger.getMessageStructure(2, "01234567", TEST_MYNAME, TEST_MYNAME, TEST_RECEIVER, "parentId", "testExec").toString();
 //							assertEquals(real_message, messageMap);
 							sendMessageAsPostMessage(messageMap, Window.Location.getHref());
-							
 						}
 					}
-
 					break;
 
 				case 1:
+					debug.trace("getReceivedMessageFromParentCount(TEST_MYNAME)	"+getReceivedMessageFromParentCount(TEST_MYNAME));
+					
 					/*
-					 * 現象としては、受け取っているのに発動しない、というケースか。
-					 * たぶんコマンドが悪いんだと思う。どう違うのか。
 					 * 
-					 * 違うポイントは、
-					 * ・受け取ったのにReceiveCenterが発動しない
-					 * なので、仮に、普通に送り込んだ場合のものとメッセージを見比べる処理が必要。
-					 * →編集してたのは別プロジェクトのメッセンジャーだった。、、、、orz
 					 */
 					if (rec.getMessengerForTesting().getReceiveLogSize() == 2) {
-						Window.alert("レシーバが受け取ったので、返答をする	はず。"+100);
-						
-						//返答が発生しない場合
+						//返答が発生しない場合の仮組
 //						rec.getMessengerForTesting().call(TEST_MYNAME, "somethingReply");
-						i = 2;
+//						i = 2;
 					}
+					
+					//自分がこれを受け取れたらOK
+					if (1 == getReceivedMessageFromParentCount(TEST_MYNAME)) {
+						cancel();
+						finishTest();
+					}
+					
 					break;
 
 
-				case 2://この分解能の書き方はハマる。
-//					//自分がこれを受け取れたらOK
-//					if (isReceivedMessageFromParent(TEST_MYNAME) != null) {
-//						cancel();
-//						finishTest();
-//					}
 				default:
 					break;
 				}
@@ -415,7 +387,26 @@ public class TestMessengerGWTWithJS extends GWTTestCase implements MessengerGWTI
 		timer.scheduleRepeating(TIME_INTERVAL);
 	}
 	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
 	/**
+	 * テストの前提条件解決
 	 * ちょっと問題を整理する為に、
 	 * messengerが子、receiverが親になり、
 	 * 
@@ -461,7 +452,23 @@ public class TestMessengerGWTWithJS extends GWTTestCase implements MessengerGWTI
 		};
 		timer.scheduleRepeating(TIME_INTERVAL);
 	}
+	
+	
+	
+	
 
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
 	
 	
 	/**
@@ -473,6 +480,7 @@ public class TestMessengerGWTWithJS extends GWTTestCase implements MessengerGWTI
 		return window[string+"_"+"parentId"];
 	}-*/;
 
+	
 	/**
 	 * JSONObjectを作り出す、ひな形比較用のメソッド
 	 * 
@@ -586,6 +594,30 @@ public class TestMessengerGWTWithJS extends GWTTestCase implements MessengerGWTI
 		return JSON.stringify(result);
 	}-*/;
 
+
+	
+	/**
+	 * 親子系の形成が完了していれば
+	 * @param propertyName
+	 * @return
+	 */
+	private native boolean parentResponseReceived(String propertyName) /*-{
+		if (!window[propertyName]) return false;
+		if (window[propertyName].slice(0,1) == "_")
+			return true;
+		return false;
+	}-*/;
+	
+	/**
+	 * 親からのメッセージを受け取っていたら、受け取ったメッセージを返す
+	 * @param myself
+	 * @return
+	 */
+	private native int getReceivedMessageFromParentCount (String myself) /*-{
+		//親からのメッセージのカウント数を数える。
+		return window[myself+"_count"];
+	}-*/;
+	
 	/**
 	 * PureJSでJSON化されたDataをPostする
 	 * 
@@ -598,6 +630,9 @@ public class TestMessengerGWTWithJS extends GWTTestCase implements MessengerGWTI
 																				}-*/;
 
 	@Override
+	/**
+	 * 受け取り
+	 */
 	public void receiveCenter(String message) {
 		debug.trace("メッセージを受けとった	"+messenger.getReceiveLogSize());
 	}
