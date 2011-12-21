@@ -1,8 +1,5 @@
 package com.kissaki.client;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-
 import com.google.gwt.json.client.JSONNumber;
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONString;
